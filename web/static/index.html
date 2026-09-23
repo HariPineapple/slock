@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Slock</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6' fill='%23e5484d'/></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="brand"><span class="dot" id="rec-dot"></span> slock</div>
+    <nav>
+      <a href="#overview" data-tab="overview">Overview</a>
+      <a href="#timeline" data-tab="timeline">Timeline</a>
+      <a href="#search" data-tab="search">Search</a>
+      <a href="#stats" data-tab="stats">Stats</a>
+      <a href="#log" data-tab="log">Log</a>
+    </nav>
+    <div class="status">
+      <span id="status-text" class="muted"></span>
+      <button id="pause-btn" class="btn"></button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Overview -->
+    <section id="tab-overview" class="tab">
+      <div class="toolbar">
+        <button class="btn icon" id="ov-prev" title="Previous day">‹</button>
+        <input type="date" id="ov-date">
+        <button class="btn icon" id="ov-next" title="Next day">›</button>
+        <button class="btn" id="ov-today">Today</button>
+        <span class="spacer"></span>
+        <span class="muted" id="ov-status"></span>
+        <button class="btn" id="ov-refresh">Summarize now</button>
+      </div>
+
+      <div class="ov-hero card" id="ov-hero">
+        <div class="ov-kicker"><span id="ov-dayname"></span><span class="badge" title="Summaries are written by Apple's on-device model. Nothing leaves your Mac.">on-device AI</span></div>
+        <h1 id="ov-headline"></h1>
+        <p id="ov-summary" class="ov-summary"></p>
+        <ul id="ov-highlights" class="ov-highlights"></ul>
+        <div class="ov-mix" id="ov-mix"></div>
+        <div class="ov-legend" id="ov-legend"></div>
+      </div>
+
+      <h3>Your day, half-hour by half-hour <span class="muted small">· click one for details</span></h3>
+      <ol class="ov-blocks" id="ov-blocks"></ol>
+    </section>
+
+    <!-- Timeline -->
+    <section id="tab-timeline" class="tab" hidden>
+      <div class="toolbar">
+        <button class="btn icon" id="day-prev" title="Previous day">‹</button>
+        <input type="date" id="day-input">
+        <button class="btn icon" id="day-next" title="Next day">›</button>
+        <button class="btn" id="day-today">Today</button>
+        <span class="spacer"></span>
+        <span class="muted" id="day-summary"></span>
+      </div>
+
+      <div class="strip-wrap">
+        <div class="strip" id="strip"></div>
+        <div class="strip-events" id="strip-events"></div>
+        <div class="strip-axis" id="strip-axis"></div>
+        <div class="strip-cursor" id="strip-cursor"></div>
+        <div class="tooltip" id="strip-tip"></div>
+      </div>
+
+      <div class="viewer">
+        <div class="shot-pane">
+          <div class="shot-frame" id="shot-frame">
+            <img id="shot-img" alt="">
+            <div class="empty" id="shot-empty">No screenshots for this day yet.</div>
+          </div>
+          <div class="scrub">
+            <button class="btn icon" id="shot-prev" title="Previous (←)">‹</button>
+            <input type="range" id="scrubber" min="0" max="0" value="0">
+            <button class="btn icon" id="shot-next" title="Next (→)">›</button>
+            <span class="muted mono" id="shot-count"></span>
+          </div>
+        </div>
+        <aside class="meta" id="shot-meta">
+          <div class="meta-time mono" id="meta-time">—</div>
+          <div class="meta-app" id="meta-app"></div>
+          <div class="meta-title" id="meta-title"></div>
+          <a class="meta-url" id="meta-url" target="_blank" rel="noopener noreferrer"></a>
+          <details id="meta-ocr-wrap">
+            <summary>Text on screen</summary>
+            <pre id="meta-ocr"></pre>
+          </details>
+        </aside>
+      </div>
+
+      <h3>Sessions</h3>
+      <div class="sessions" id="sessions"></div>
+    </section>
+
+    <!-- Search -->
+    <section id="tab-search" class="tab" hidden>
+      <form class="search-bar" id="search-form">
+        <input type="search" id="search-input" placeholder="Search everything you've seen, visited or typed…" autocomplete="off">
+        <div class="chips" id="search-types">
+          <button type="button" class="chip active" data-type="all">All</button>
+          <button type="button" class="chip" data-type="screen">Screen text</button>
+          <button type="button" class="chip" data-type="window">Windows &amp; URLs</button>
+          <button type="button" class="chip" data-type="shell">Shell</button>
+        </div>
+      </form>
+      <div class="muted" id="search-summary"></div>
+      <div class="results" id="search-results"></div>
+    </section>
+
+    <!-- Stats -->
+    <section id="tab-stats" class="tab" hidden>
+      <div class="toolbar">
+        <div class="chips" id="stats-range">
+          <button class="chip active" data-days="1">Today</button>
+          <button class="chip" data-days="7">7 days</button>
+          <button class="chip" data-days="30">30 days</button>
+          <button class="chip" data-days="365">Year</button>
+        </div>
+        <span class="spacer"></span>
+        <span class="big" id="stats-total"></span>
+      </div>
+      <div class="grid">
+        <div class="card"><h3>Apps</h3><div class="bars" id="stats-apps"></div></div>
+        <div class="card"><h3>Websites</h3><div class="bars" id="stats-domains"></div></div>
+        <div class="card wide"><h3>When you're active</h3><div class="heatmap" id="stats-heat"></div></div>
+        <div class="card"><h3>Per day</h3><div class="daybars" id="stats-days"></div></div>
+        <div class="card"><h3>Top shell commands</h3><div class="bars" id="stats-shell"></div></div>
+      </div>
+    </section>
+
+    <!-- Log -->
+    <section id="tab-log" class="tab" hidden>
+      <div class="toolbar">
+        <input type="date" id="log-date">
+        <div class="chips" id="log-filter">
+          <button class="chip active" data-f="all">All</button>
+          <button class="chip" data-f="event">System</button>
+          <button class="chip" data-f="url">Web</button>
+          <button class="chip" data-f="shell">Shell</button>
+        </div>
+      </div>
+      <div class="log" id="log-list"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
