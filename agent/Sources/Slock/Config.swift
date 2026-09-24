@@ -46,6 +46,10 @@ struct Config: Codable {
     var keystrokeCaptureEnabled: Bool = true
     /// Close off a typed segment after this many seconds without a keystroke.
     var keystrokeIdleFlushSeconds: Double = 4
+    /// Local Ollama server the Chat tab talks to. Nothing is sent anywhere else.
+    var ollamaEndpoint: String = "http://127.0.0.1:11434"
+    /// Ollama model used by the Chat tab. Must be pulled first (`ollama pull <model>`).
+    var ollamaModel: String = "qwen2.5:3b-instruct"
 
     static func load() -> Config {
         let decoder = JSONDecoder()
@@ -79,6 +83,8 @@ struct Config: Codable {
         dashboardPort = (try? c.decode(Int.self, forKey: .dashboardPort)) ?? d.dashboardPort
         keystrokeCaptureEnabled = (try? c.decode(Bool.self, forKey: .keystrokeCaptureEnabled)) ?? d.keystrokeCaptureEnabled
         keystrokeIdleFlushSeconds = (try? c.decode(Double.self, forKey: .keystrokeIdleFlushSeconds)) ?? d.keystrokeIdleFlushSeconds
+        ollamaEndpoint = (try? c.decode(String.self, forKey: .ollamaEndpoint)) ?? d.ollamaEndpoint
+        ollamaModel = (try? c.decode(String.self, forKey: .ollamaModel)) ?? d.ollamaModel
     }
 }
 
