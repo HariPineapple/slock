@@ -42,6 +42,10 @@ struct Config: Codable {
     /// Substrings; if the active URL contains any of these, no screenshot is taken.
     var excludedUrlPatterns: [String] = []
     var dashboardPort: Int = 8765
+    /// Record typed text (needs Accessibility + Input Monitoring). Passwords in secure fields are never captured.
+    var keystrokeCaptureEnabled: Bool = true
+    /// Close off a typed segment after this many seconds without a keystroke.
+    var keystrokeIdleFlushSeconds: Double = 4
 
     static func load() -> Config {
         let decoder = JSONDecoder()
@@ -73,6 +77,8 @@ struct Config: Codable {
         excludedBundleIds = (try? c.decode([String].self, forKey: .excludedBundleIds)) ?? d.excludedBundleIds
         excludedUrlPatterns = (try? c.decode([String].self, forKey: .excludedUrlPatterns)) ?? d.excludedUrlPatterns
         dashboardPort = (try? c.decode(Int.self, forKey: .dashboardPort)) ?? d.dashboardPort
+        keystrokeCaptureEnabled = (try? c.decode(Bool.self, forKey: .keystrokeCaptureEnabled)) ?? d.keystrokeCaptureEnabled
+        keystrokeIdleFlushSeconds = (try? c.decode(Double.self, forKey: .keystrokeIdleFlushSeconds)) ?? d.keystrokeIdleFlushSeconds
     }
 }
 

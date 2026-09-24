@@ -7,9 +7,10 @@ Flock, but for your computer. Slock quietly records what happens on your Mac so 
 - **Screenshots**: every 10s per display. Duplicates are skipped, and text is OCR'd on-device with Apple Vision, so it's searchable
 - **Browser URLs**: from Safari, Chrome, Arc, Brave, Edge and Vivaldi. Incognito windows are skipped
 - **Shell commands**: with cwd, exit code and duration. Your existing `~/.zsh_history` is imported once
+- **Typed text**: what you type, per app and window, searchable like screen text (`keystrokeCaptureEnabled`, on by default). macOS never hands keystrokes from secure password fields to Slock, so those aren't captured; typing in excluded/password-manager/private windows is skipped too. Needs Accessibility and **Input Monitoring**
 - **System events**: sleep/wake, lock/unlock, idle, app launch/quit, network changes, USB/volume mounts, new downloads
 
-**What it doesn't record**: keystrokes, audio, and anything while the app is paused, the screen is locked or the Mac is idle. It also skips the windows of password managers (1Password, Bitwarden, Keychain Access, Passwords, LastPass).
+**What it doesn't record**: audio, passwords typed into secure fields (macOS withholds these), and anything while the app is paused, the screen is locked or the Mac is idle. It also skips the windows of password managers (1Password, Bitwarden, Keychain Access, Passwords, LastPass). Set `keystrokeCaptureEnabled` to `false` to turn off typed-text capture entirely.
 
 ## Install
 
@@ -26,6 +27,7 @@ Then grant the permissions in **System Settings → Privacy & Security**:
 |---|---|
 | Screen Recording | Screenshots. Restart Slock after granting (`make restart`) |
 | Accessibility | Window titles |
+| Input Monitoring | Typed text (only if `keystrokeCaptureEnabled`). Restart Slock after granting |
 | Automation → each browser | Tab URLs. You'll be prompted the first time |
 | Files & Folders → Downloads | Download log. You'll be prompted |
 
@@ -44,14 +46,14 @@ Then grant the permissions in **System Settings → Privacy & Security**:
 Everything lives in `~/.slock/`:
 
 ```
-slock.db        SQLite (WAL): activity, screenshots, ocr (FTS5), shell, events
+slock.db        SQLite (WAL): activity, screenshots, ocr (FTS5), shell, events, keystrokes (FTS5)
 shots/DATE/     JPEG screenshots (deleted after 30 days; text is kept forever)
 config.json     settings (created with defaults on first run)
 paused          present = recording paused (menu bar / dashboard toggle)
 agent.log       agent log
 ```
 
-`config.json` keys: `screenshotIntervalSeconds`, `idleThresholdSeconds`, `screenshotRetentionDays`, `screenshotMaxWidth`, `jpegQuality`, `duplicateHashDistance`, `ocrEnabled`, `excludedBundleIds`, `excludedUrlPatterns`, `dashboardPort`. Run `make restart` after editing it.
+`config.json` keys: `screenshotIntervalSeconds`, `idleThresholdSeconds`, `screenshotRetentionDays`, `screenshotMaxWidth`, `jpegQuality`, `duplicateHashDistance`, `ocrEnabled`, `excludedBundleIds`, `excludedUrlPatterns`, `dashboardPort`, `keystrokeCaptureEnabled`, `keystrokeIdleFlushSeconds`. Run `make restart` after editing it.
 
 Screenshots take roughly 1–3 GB a day of active use at the defaults. To use less, lower `jpegQuality` or `screenshotMaxWidth`, or raise the interval.
 

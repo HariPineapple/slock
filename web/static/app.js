@@ -384,6 +384,12 @@ function renderResult(r, q) {
       <div><div class="head"><span class="kind">shell</span>${when}<span class="muted">${esc(r.cwd || "")}</span></div>
       <code>${markTerms(r.cmd, q)}</code></div></div>`;
   }
+  if (r.type === "typed") {
+    return `<div class="result noimg" ${jump}>
+      <div><div class="head"><span class="kind">typed</span><b>${esc(r.app || "")}</b>${when}
+        <span class="muted">${esc(r.window_title || "")}</span></div>
+      <div class="snip">${highlight(r.snippet)}</div></div></div>`;
+  }
   return `<div class="result noimg" ${jump}>
     <div><div class="head"><span class="kind">${r.type}</span><b>${markTerms(r.app || "", q)}</b>${when}
       <span class="muted">${dur(r.seconds)} total · ${r.visits}×</span></div>
@@ -489,6 +495,8 @@ function renderLog() {
       body = `<code class="${r.exit_code ? "fail" : ""}">${esc(r.cmd)}</code> <span class="muted">${esc(r.cwd || "")}${r.duration_ms > 1000 ? " · " + dur(r.duration_ms / 1000) : ""}</span>`;
     } else if (r.type === "url") {
       body = `<b>${esc(r.window_title || r.url)}</b> <a class="muted" href="${esc(safeHref(r.url))}" target="_blank" rel="noopener noreferrer">${esc(r.url)}</a>`;
+    } else if (r.type === "typed") {
+      body = `<span class="typed-text">${esc(r.text)}</span> <span class="muted">${esc(r.app || "")}${r.window_title ? " · " + esc(r.window_title) : ""}</span>`;
     } else {
       body = describeEvent(r);
     }

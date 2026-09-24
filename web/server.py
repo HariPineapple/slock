@@ -174,6 +174,18 @@ def api_search(conn, q):
             r["type"] = "shell"
             results.append(r)
 
+    if kind in ("all", "typed") and table_exists(conn, "keystrokes"):
+        match = fts_query(text)
+        if match:
+            for r in rows(conn, """
+                SELECT k.ts, k.app, k.window_title,
+                       snippet(keystrokes_fts, 0, ?, ?, '…', 16) AS snippet
+                FROM keystrokes_fts JOIN keystrokes k ON k.id = keystrokes_fts.rowid
+                WHERE keystrokes_fts MATCH ? ORDER BY k.ts DESC LIMIT ?""",
+                          (HIGHLIGHT_OPEN, HIGHLIGHT_CLOSE, match, limit)):
+                r["type"] = "typed"
+                results.append(r)
+
     results.sort(key=lambda r: r.get("last_seen") or r["ts"], reverse=True)
     return {"results": results[:limit], "highlight": [HIGHLIGHT_OPEN, HIGHLIGHT_CLOSE]}
 
@@ -235,6 +247,11 @@ def api_log(conn, q):
         WHERE start >= ? AND start < ? AND url IS NOT NULL""", (lo, hi)):
         r["type"] = "url"
         items.append(r)
+    if table_exists(conn, "keystrokes"):
+        for r in rows(conn, """
+            SELECT ts, app, window_title, text FROM keystrokes WHERE ts >= ? AND ts < ?""", (lo, hi)):
+            r["type"] = "typed"
+            items.append(r)
     items.sort(key=lambda r: r["ts"], reverse=True)
     return {"items": items}
 

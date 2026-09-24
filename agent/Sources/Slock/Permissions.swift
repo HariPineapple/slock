@@ -1,11 +1,18 @@
 import AppKit
 import ApplicationServices
+import IOKit.hid
 
 /// Checks privacy permissions without prompting, and prompts at most once per install.
 enum Permissions {
     static var accessibility: Bool { AXIsProcessTrusted() }
     /// Note: after granting Screen Recording, this only turns true once the app is relaunched.
     static var screenRecording: Bool { CGPreflightScreenCaptureAccess() }
+    /// Needed for the keystroke event tap. Granted means we can listen to key events.
+    static var inputMonitoring: Bool { IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) == kIOHIDAccessTypeGranted }
+
+    static func openInputMonitoringSettings() {
+        open("x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")
+    }
 
     private static let promptedKey = "permissionsPrompted"
 
@@ -20,6 +27,10 @@ enum Permissions {
         }
         if !screenRecording {
             CGRequestScreenCaptureAccess()
+        }
+        // Prompts to add Slock to Input Monitoring when keystroke capture is on.
+        if State.shared.config.keystrokeCaptureEnabled && !inputMonitoring {
+            _ = IOHIDRequestAccess(kIOHIDRequestTypeListenEvent)
         }
     }
 

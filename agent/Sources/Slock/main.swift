@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuTimer: Timer?
     private let tracker = AppTracker()
     private let capture = ScreenCapture()
+    private let keys = KeystrokeCapture()
     private let system = SystemEvents()
     private let shell = ShellIngest()
     private let retention = Retention()
@@ -34,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Database.shared.event("agent_start", ["version": "0.1"])
         tracker.start()
         capture.start()
+        keys.start()
         system.start()
         shell.start()
         retention.start()
@@ -138,7 +140,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !Permissions.accessibility {
             menu.addItem(item("⚠︎ Allow Accessibility…", #selector(grantAccessibility), ""))
         }
-        if !Permissions.screenRecording || !Permissions.accessibility {
+        if state.config.keystrokeCaptureEnabled && !Permissions.inputMonitoring {
+            menu.addItem(item("⚠︎ Allow Input Monitoring…", #selector(grantInputMonitoring), ""))
+        }
+        if !Permissions.screenRecording || !Permissions.accessibility
+            || (state.config.keystrokeCaptureEnabled && !Permissions.inputMonitoring) {
             menu.addItem(item("Restart Slock (after granting)", #selector(relaunch), ""))
         }
         menu.addItem(.separator())
@@ -177,6 +183,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func quit() { NSApp.terminate(nil) }
     @objc private func grantScreen() { Permissions.openScreenRecordingSettings() }
     @objc private func grantAccessibility() { Permissions.openAccessibilitySettings() }
+    @objc private func grantInputMonitoring() { Permissions.openInputMonitoringSettings() }
 
     /// Screen Recording only takes effect after a relaunch. Start a fresh copy once this one has exited.
     @objc private func relaunch() {

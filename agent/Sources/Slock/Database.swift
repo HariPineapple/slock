@@ -40,6 +40,14 @@ final class Database {
             id INTEGER PRIMARY KEY, ts REAL NOT NULL, kind TEXT NOT NULL, detail_json TEXT);
         CREATE INDEX IF NOT EXISTS events_ts ON events(ts);
         CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT);
+        CREATE TABLE IF NOT EXISTS keystrokes(
+            id INTEGER PRIMARY KEY, ts REAL NOT NULL, app TEXT, window_title TEXT, text TEXT NOT NULL);
+        CREATE INDEX IF NOT EXISTS keystrokes_ts ON keystrokes(ts);
+        CREATE VIRTUAL TABLE IF NOT EXISTS keystrokes_fts USING fts5(text, content='keystrokes', content_rowid='id');
+        CREATE TRIGGER IF NOT EXISTS keystrokes_ai AFTER INSERT ON keystrokes BEGIN
+            INSERT INTO keystrokes_fts(rowid, text) VALUES (new.id, new.text); END;
+        CREATE TRIGGER IF NOT EXISTS keystrokes_ad AFTER DELETE ON keystrokes BEGIN
+            INSERT INTO keystrokes_fts(keystrokes_fts, rowid, text) VALUES('delete', old.id, old.text); END;
         """)
         // Added later: the front window's frame within each screenshot.
         if !query("PRAGMA table_info(screenshots)").contains(where: { ($0[1] as? String) == "win" }) {

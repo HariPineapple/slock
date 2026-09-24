@@ -190,6 +190,7 @@ input[type=date], input[type=search] {
 .log { display: flex; flex-direction: column; }
 .log-item { display: grid; grid-template-columns: 80px 70px 1fr; gap: 12px; padding: 6px 8px; border-bottom: 1px solid var(--border); align-items: baseline; }
 .log-item .k { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.log-item .typed-text { white-space: pre-wrap; word-break: break-word; }
 .log-item .body { min-width: 0; word-break: break-word; }
 .log-item code { font-family: ui-monospace, Menlo, monospace; font-size: 13px; white-space: pre-wrap; }
 .log-item .fail { color: var(--accent); }
