@@ -82,6 +82,8 @@ const state = {
   shotIdx: 0,
   pendingShotTs: null,
   searchType: "all",
+  chat: [],
+  chatBusy: false,
   statsDays: 1,
   logFilter: "all",
   logItems: [],
@@ -95,7 +97,7 @@ function parseHash() {
 
 function route() {
   const { tab, params } = parseHash();
-  state.tab = ["overview", "timeline", "search", "stats", "log"].includes(tab) ? tab : "overview";
+  state.tab = ["overview", "timeline", "search", "chat", "stats", "log"].includes(tab) ? tab : "overview";
   $$("nav a").forEach((a) => a.classList.toggle("active", a.dataset.tab === state.tab));
   $$(".tab").forEach((s) => (s.hidden = s.id !== "tab-" + state.tab));
 
@@ -114,6 +116,8 @@ function route() {
     const q = params.get("q");
     if (q !== null && q !== $("#search-input").value) { $("#search-input").value = q; runSearch(); }
     $("#search-input").focus();
+  } else if (state.tab === "chat") {
+    $("#chat-input").focus();
   } else if (state.tab === "stats") {
     loadStats();
   } else if (state.tab === "log") {
@@ -662,6 +666,80 @@ $("#ov-date").addEventListener("change", (e) => e.target.value && setOvDate(e.ta
 $("#ov-prev").addEventListener("click", () => setOvDate(addDays(state.date, -1)));
 $("#ov-next").addEventListener("click", () => setOvDate(addDays(state.date, 1)));
 $("#ov-today").addEventListener("click", () => setOvDate(ymd(new Date())));
+
+// ------------------------------------------------------------------ boot
+
+// ------------------------------------------------------------------ chat
+
+function renderChat() {
+  const box = $("#chat-messages");
+  const empty = $("#chat-empty");
+  if (empty) empty.style.display = state.chat.length ? "none" : "";
+  box.querySelectorAll(".chat-msg").forEach((el) => el.remove());
+  for (const m of state.chat) {
+    const el = document.createElement("div");
+    el.className = "chat-msg " + m.role;
+    el.textContent = m.content || (m.role === "assistant" ? "…" : "");
+    box.appendChild(el);
+  }
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendChat() {
+  const input = $("#chat-input");
+  const text = input.value.trim();
+  if (!text || state.chatBusy) return;
+  state.chatBusy = true;
+  $("#chat-send").disabled = true;
+  input.value = "";
+  input.style.height = "auto";
+  state.chat.push({ role: "user", content: text });
+  const assistant = { role: "assistant", content: "" };
+  state.chat.push(assistant);
+  renderChat();
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: state.chat.slice(0, -1) }),
+    });
+    if (!res.ok) {
+      let msg = res.statusText;
+      try { msg = (await res.json()).error || msg; } catch (e) { /* not json */ }
+      assistant.content = "⚠︎ " + msg;
+      renderChat();
+      return;
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      assistant.content += decoder.decode(value, { stream: true });
+      renderChat();
+    }
+    if (!assistant.content) assistant.content = "(no response)";
+    renderChat();
+  } catch (e) {
+    assistant.content = "⚠︎ " + e.message;
+    renderChat();
+  } finally {
+    state.chatBusy = false;
+    $("#chat-send").disabled = false;
+    $("#chat-input").focus();
+  }
+}
+
+$("#chat-form").addEventListener("submit", (e) => { e.preventDefault(); sendChat(); });
+$("#chat-clear").addEventListener("click", () => { state.chat = []; renderChat(); $("#chat-input").focus(); });
+$("#chat-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(); }
+});
+$("#chat-input").addEventListener("input", (e) => {
+  e.target.style.height = "auto";
+  e.target.style.height = Math.min(e.target.scrollHeight, 160) + "px";
+});
 
 // ------------------------------------------------------------------ boot
 

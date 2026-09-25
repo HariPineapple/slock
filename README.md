@@ -38,6 +38,7 @@ Then grant the permissions in **System Settings → Privacy & Security**:
 - **Overview** (the default tab): an AI-written summary of your day. You get a headline, a short narrative, highlights and your time broken down by category, plus a title and summary for every half hour. Apple's **on-device** model (Apple Intelligence, macOS 26+) writes them, so nothing leaves your Mac. Half-hour summaries appear automatically as each block finishes, and the day overview refreshes hourly. Click **Summarize now** to add a summary of everything since the last one, up to that minute (the automatic half-hour summaries still carry on), or click an entry to see specifics: what you read and wrote, and for chats who you talked to, what about and who said what (it re-reads that stretch's screenshots; in Messages, WhatsApp and other bubble-style chats your messages are told apart by being on the right).
 - **Timeline**: a colored 24h strip of apps. Drag across it or use ←/→ to scrub through screenshots. Click a screenshot to view it full size. The side panel shows the window, URL and OCR text at that moment.
 - **Search** (`/`): full-text search over everything that was on screen, plus window titles, URLs and shell commands. Click a result to jump to that moment.
+- **Chat**: a chatbot that runs against a **local** model through [Ollama](https://ollama.com), so nothing you type leaves your Mac. Install Ollama and pull a model (`ollama pull qwen2.5:3b-instruct`), then chat from the tab. The model and server are configurable via `ollamaModel` and `ollamaEndpoint` in `config.json`.
 - **Stats**: time per app and per website, an hour × weekday heatmap, daily totals and top shell commands.
 - **Log**: a raw feed of system events, pages visited and commands run.
 
@@ -53,7 +54,7 @@ paused          present = recording paused (menu bar / dashboard toggle)
 agent.log       agent log
 ```
 
-`config.json` keys: `screenshotIntervalSeconds`, `idleThresholdSeconds`, `screenshotRetentionDays`, `screenshotMaxWidth`, `jpegQuality`, `duplicateHashDistance`, `ocrEnabled`, `excludedBundleIds`, `excludedUrlPatterns`, `dashboardPort`, `keystrokeCaptureEnabled`, `keystrokeIdleFlushSeconds`. Run `make restart` after editing it.
+`config.json` keys: `screenshotIntervalSeconds`, `idleThresholdSeconds`, `screenshotRetentionDays`, `screenshotMaxWidth`, `jpegQuality`, `duplicateHashDistance`, `ocrEnabled`, `excludedBundleIds`, `excludedUrlPatterns`, `dashboardPort`, `keystrokeCaptureEnabled`, `keystrokeIdleFlushSeconds`, `ollamaEndpoint`, `ollamaModel`. Run `make restart` after editing it.
 
 Screenshots take roughly 1–3 GB a day of active use at the defaults. To use less, lower `jpegQuality` or `screenshotMaxWidth`, or raise the interval.
 

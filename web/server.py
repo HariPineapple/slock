@@ -12,6 +12,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
+from urllib.request import Request, urlopen
 
 ROOT = os.path.expanduser("~/.slock")
 DB_PATH = os.path.join(ROOT, "slock.db")
@@ -23,12 +24,27 @@ STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 HIGHLIGHT_OPEN, HIGHLIGHT_CLOSE = "\x02", "\x03"
 
 
-def load_port():
+def load_config():
     try:
         with open(os.path.join(ROOT, "config.json")) as f:
-            return int(json.load(f).get("dashboardPort", 8765))
+            return json.load(f)
     except (OSError, ValueError):
+        return {}
+
+
+def load_port():
+    try:
+        return int(load_config().get("dashboardPort", 8765))
+    except (TypeError, ValueError):
         return 8765
+
+
+OLLAMA_DEFAULT_ENDPOINT = "http://127.0.0.1:11434"
+OLLAMA_DEFAULT_MODEL = "qwen2.5:3b-instruct"
+CHAT_SYSTEM = (
+    "You are Slock's built-in assistant, running entirely on this Mac through a local Ollama model. "
+    "Nothing the user types leaves their computer. Be concise and helpful."
+)
 
 
 def connect():
@@ -342,6 +358,59 @@ class Handler(BaseHTTPRequestHandler):
         host = (self.headers.get("Host") or "").split(":")[0]
         return host in ("127.0.0.1", "localhost", "[::1]")
 
+    def handle_chat(self, body):
+        """Proxy a chat turn to the local Ollama server and stream the reply back as plain text."""
+        msgs = body.get("messages")
+        if not isinstance(msgs, list) or not msgs:
+            return self.send_json({"error": "messages required"}, 400)
+        clean = []
+        for m in msgs[-20:]:
+            role = m.get("role") if isinstance(m, dict) else None
+            content = m.get("content") if isinstance(m, dict) else None
+            if role in ("user", "assistant") and isinstance(content, str) and content.strip():
+                clean.append({"role": role, "content": content[:8000]})
+        if not clean:
+            return self.send_json({"error": "no valid messages"}, 400)
+
+        cfg = load_config()
+        endpoint = cfg.get("ollamaEndpoint") or OLLAMA_DEFAULT_ENDPOINT
+        model = cfg.get("ollamaModel") or OLLAMA_DEFAULT_MODEL
+        payload = json.dumps({
+            "model": model, "stream": True,
+            "messages": [{"role": "system", "content": CHAT_SYSTEM}] + clean,
+        }).encode()
+        try:
+            up = urlopen(Request(endpoint.rstrip("/") + "/api/chat", data=payload,
+                                 headers={"Content-Type": "application/json"}), timeout=120)
+        except Exception as e:  # noqa: BLE001 — surface any connection/HTTP failure to the user
+            return self.send_json(
+                {"error": "Can't reach Ollama at %s (%s). Make sure Ollama is running and `ollama pull %s` has been run."
+                 % (endpoint, e, model)}, 503)
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        try:
+            for line in up:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except ValueError:
+                    continue
+                chunk = (obj.get("message") or {}).get("content", "")
+                if chunk:
+                    self.wfile.write(chunk.encode("utf-8"))
+                    self.wfile.flush()
+                if obj.get("done"):
+                    break
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        finally:
+            up.close()
+
     def do_GET(self):
         if not self.host_ok():
             return self.send_json({"error": "forbidden"}, 403)
@@ -403,6 +472,8 @@ class Handler(BaseHTTPRequestHandler):
             with open(DETAILS_REQUEST, "w") as f:
                 f.write(repr(start))
             return self.send_json({"requested": start})
+        if path == "/api/chat":
+            return self.handle_chat(body)
         if path == "/api/resume":
             try:
                 os.remove(PAUSE_FLAG)
